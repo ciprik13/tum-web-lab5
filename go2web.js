@@ -33,7 +33,6 @@ function rawRequest(host, port, path) {
   });
 }
 
-
 function stripHtml(html) {
   return html
     .replace(/<style[\s\S]*?<\/style>/gi, '')
@@ -56,6 +55,30 @@ function parseResponse(raw) {
   const statusLine = lines[0];
   const statusCode = parseInt(statusLine.split(' ')[1], 10);
   return { statusCode, statusLine, body };
+}
+
+/**
+ * Search Yahoo and return top 10 results as [{ title, url }]
+ */
+function searchYahoo(term) {
+  const query = encodeURIComponent(term);
+  const path = `/search?p=${query}`;
+  return rawRequest('search.yahoo.com', 80, path).then(raw => {
+    const { body } = parseResponse(raw);
+    const results = [];
+    // Yahoo wraps result links in <a class="ac-algo ..."> or plain anchors with /url?...
+    const linkRe = /<a[^>]+href="(https?:\/\/[^"]+)"[^>]*>([^<]+)<\/a>/gi;
+    let match;
+    while ((match = linkRe.exec(body)) !== null && results.length < 10) {
+      const url = match[1];
+      const title = match[2].trim();
+      // Skip Yahoo-internal navigation links
+      if (url.includes('yahoo.com')) continue;
+      if (title.length < 5) continue;
+      results.push({ title, url });
+    }
+    return results;
+  });
 }
 
 if (args.length === 0) {
@@ -95,10 +118,23 @@ Options:
       .catch(err => { console.error(err.message); process.exit(1); });
     break;
   }
-  case '-s':
-    // TODO: implement in next commit
-    console.log('go2web: -s not yet implemented');
+  case '-s': {
+    const term = args[1];
+    if (!term) { console.error('Usage: go2web -s <search-term>'); process.exit(1); }
+    searchYahoo(term)
+      .then(results => {
+        if (results.length === 0) {
+          console.log('No results found.');
+          return;
+        }
+        results.forEach((r, i) => {
+          console.log(`${i + 1}. ${r.title}`);
+          console.log(`   ${r.url}`);
+        });
+      })
+      .catch(err => { console.error(err.message); process.exit(1); });
     break;
+  }
   default:
     console.error(`Unknown flag: ${flag}`);
     process.exit(1);
