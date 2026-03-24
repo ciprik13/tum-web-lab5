@@ -13,8 +13,20 @@ const flag = args[0];
 
 switch (flag) {
   case '-h':
-    // TODO: implement in next commit
-    console.log('go2web: help not yet implemented');
+    console.log(`
+go2web - A simple HTTP CLI tool using raw TCP sockets
+
+Usage:
+  go2web -h                       Print this help message
+  go2web -u <URL>                 Fetch a URL and print human-readable response
+  go2web -s <search-term>         Search and print top 10 results
+  go2web -s <search-term> <no>    Fetch the Nth search result
+
+Options:
+  -h   Show help
+  -u   Make a raw HTTP request to the given URL
+  -s   Search using Yahoo / DuckDuckGo
+    `);
     break;
   case '-u':
     // TODO: implement in next commit
