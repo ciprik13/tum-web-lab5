@@ -57,27 +57,59 @@ function parseResponse(raw) {
   return { statusCode, statusLine, body };
 }
 
-/**
- * Search Yahoo and return top 10 results as [{ title, url }]
- */
 function searchYahoo(term) {
   const query = encodeURIComponent(term);
   const path = `/search?p=${query}`;
   return rawRequest('search.yahoo.com', 80, path).then(raw => {
     const { body } = parseResponse(raw);
     const results = [];
-    // Yahoo wraps result links in <a class="ac-algo ..."> or plain anchors with /url?...
     const linkRe = /<a[^>]+href="(https?:\/\/[^"]+)"[^>]*>([^<]+)<\/a>/gi;
     let match;
     while ((match = linkRe.exec(body)) !== null && results.length < 10) {
       const url = match[1];
       const title = match[2].trim();
-      // Skip Yahoo-internal navigation links
       if (url.includes('yahoo.com')) continue;
       if (title.length < 5) continue;
       results.push({ title, url });
     }
     return results;
+  });
+}
+
+/**
+ * Search DuckDuckGo and return top 10 results as [{ title, url }]
+ * DuckDuckGo HTML search is available at http://html.duckduckgo.com/html/
+ */
+function searchDuckDuckGo(term) {
+  const query = encodeURIComponent(term);
+  const path = `/html/?q=${query}`;
+  return rawRequest('html.duckduckgo.com', 80, path).then(raw => {
+    const { body } = parseResponse(raw);
+    const results = [];
+    // DDG wraps results in <a class="result__a" href="...">title</a>
+    const linkRe = /<a[^>]+class="result__a"[^>]+href="(https?:\/\/[^"]+)"[^>]*>([^<]+)<\/a>/gi;
+    let match;
+    while ((match = linkRe.exec(body)) !== null && results.length < 10) {
+      const url = match[1];
+      const title = match[2].trim();
+      if (title.length < 5) continue;
+      results.push({ title, url });
+    }
+    return results;
+  });
+}
+
+/**
+ * Try Yahoo first, fall back to DuckDuckGo if no results
+ */
+function search(term) {
+  return searchYahoo(term).then(results => {
+    if (results.length > 0) return results;
+    console.error('Yahoo returned no results, trying DuckDuckGo...');
+    return searchDuckDuckGo(term);
+  }).catch(() => {
+    console.error('Yahoo failed, trying DuckDuckGo...');
+    return searchDuckDuckGo(term);
   });
 }
 
@@ -121,7 +153,7 @@ Options:
   case '-s': {
     const term = args[1];
     if (!term) { console.error('Usage: go2web -s <search-term>'); process.exit(1); }
-    searchYahoo(term)
+    search(term)
       .then(results => {
         if (results.length === 0) {
           console.log('No results found.');
