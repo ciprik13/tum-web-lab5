@@ -54,7 +54,42 @@ function parseResponse(raw) {
   const lines = headerSection.split('\r\n');
   const statusLine = lines[0];
   const statusCode = parseInt(statusLine.split(' ')[1], 10);
-  return { statusCode, statusLine, body };
+
+  // Parse headers into a key-value object
+  const headers = {};
+  for (let i = 1; i < lines.length; i++) {
+    const idx = lines[i].indexOf(':');
+    if (idx === -1) continue;
+    const key = lines[i].slice(0, idx).trim().toLowerCase();
+    const val = lines[i].slice(idx + 1).trim();
+    headers[key] = val;
+  }
+
+  return { statusCode, statusLine, headers, body };
+}
+
+/**
+ * Fetch a URL following up to maxRedirects 3xx redirects.
+ */
+function fetchWithRedirects(url, maxRedirects = 5) {
+  if (maxRedirects === 0) return Promise.reject(new Error('Too many redirects'));
+
+  const { host, port, path } = parseUrl(url);
+  return rawRequest(host, port, path).then(raw => {
+    const { statusCode, statusLine, headers, body } = parseResponse(raw);
+
+    if (statusCode >= 300 && statusCode < 400 && headers['location']) {
+      const location = headers['location'];
+      console.error(`→ Redirect ${statusCode}: ${location}`);
+      // Handle relative redirects
+      const nextUrl = location.startsWith('http')
+        ? location
+        : `http://${host}${location}`;
+      return fetchWithRedirects(nextUrl, maxRedirects - 1);
+    }
+
+    return { statusLine, body };
+  });
 }
 
 function searchYahoo(term) {
@@ -76,17 +111,12 @@ function searchYahoo(term) {
   });
 }
 
-/**
- * Search DuckDuckGo and return top 10 results as [{ title, url }]
- * DuckDuckGo HTML search is available at http://html.duckduckgo.com/html/
- */
 function searchDuckDuckGo(term) {
   const query = encodeURIComponent(term);
   const path = `/html/?q=${query}`;
   return rawRequest('html.duckduckgo.com', 80, path).then(raw => {
     const { body } = parseResponse(raw);
     const results = [];
-    // DDG wraps results in <a class="result__a" href="...">title</a>
     const linkRe = /<a[^>]+class="result__a"[^>]+href="(https?:\/\/[^"]+)"[^>]*>([^<]+)<\/a>/gi;
     let match;
     while ((match = linkRe.exec(body)) !== null && results.length < 10) {
@@ -99,9 +129,6 @@ function searchDuckDuckGo(term) {
   });
 }
 
-/**
- * Try Yahoo first, fall back to DuckDuckGo if no results
- */
 function search(term) {
   return searchYahoo(term).then(results => {
     if (results.length > 0) return results;
@@ -140,10 +167,8 @@ Options:
   case '-u': {
     const url = args[1];
     if (!url) { console.error('Usage: go2web -u <URL>'); process.exit(1); }
-    const { host, port, path } = parseUrl(url);
-    rawRequest(host, port, path)
-      .then(raw => {
-        const { statusLine, body } = parseResponse(raw);
+    fetchWithRedirects(url)
+      .then(({ statusLine, body }) => {
         console.log(statusLine);
         console.log(stripHtml(body));
       })
