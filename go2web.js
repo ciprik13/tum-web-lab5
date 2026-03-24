@@ -202,7 +202,7 @@ Options:
     const url = args[1];
     if (!url) { console.error('Usage: go2web -u <URL>'); process.exit(1); }
     fetchCached(url)
-      .then(({ statusLine, body }) => {
+      .then(({ statusLine, headers, body }) => {
         console.log(statusLine);
         console.log(formatBody(body, headers));
       })
@@ -227,7 +227,7 @@ Options:
           }
           const picked = results[pickNum - 1];
           console.log(`Fetching result ${pickNum}: ${picked.url}\n`);
-          return fetchCached(picked.url).then(({ statusLine, body }) => {
+          return fetchCached(picked.url).then(({ statusLine, headers, body }) => {
             console.log(statusLine);
             console.log(formatBody(body, headers));
           });
