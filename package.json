@@ -1,0 +1,13 @@
+{
+  "name": "go2web",
+  "version": "1.0.0",
+  "description": "CLI HTTP tool using raw TCP sockets",
+  "main": "go2web.js",
+  "bin": {
+    "go2web": "./go2web.js"
+  },
+  "scripts": {
+    "start": "node go2web.js"
+  },
+  "license": "MIT"
+}
