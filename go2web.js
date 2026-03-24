@@ -33,6 +33,21 @@ function rawRequest(host, port, path) {
   });
 }
 
+
+function stripHtml(html) {
+  return html
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 function parseResponse(raw) {
   const sep = raw.indexOf('\r\n\r\n');
   const headerSection = raw.slice(0, sep);
@@ -75,7 +90,7 @@ Options:
       .then(raw => {
         const { statusLine, body } = parseResponse(raw);
         console.log(statusLine);
-        console.log(body);
+        console.log(stripHtml(body));
       })
       .catch(err => { console.error(err.message); process.exit(1); });
     break;
