@@ -177,13 +177,28 @@ Options:
   }
   case '-s': {
     const term = args[1];
-    if (!term) { console.error('Usage: go2web -s <search-term>'); process.exit(1); }
+    if (!term) { console.error('Usage: go2web -s <search-term> [number]'); process.exit(1); }
+    const pickNum = args[2] ? parseInt(args[2], 10) : null;
     search(term)
       .then(results => {
         if (results.length === 0) {
           console.log('No results found.');
           return;
         }
+        // If a number was given, fetch that result directly
+        if (pickNum !== null) {
+          if (pickNum < 1 || pickNum > results.length) {
+            console.error(`Pick a number between 1 and ${results.length}`);
+            process.exit(1);
+          }
+          const picked = results[pickNum - 1];
+          console.log(`Fetching result ${pickNum}: ${picked.url}\n`);
+          return fetchWithRedirects(picked.url).then(({ statusLine, body }) => {
+            console.log(statusLine);
+            console.log(stripHtml(body));
+          });
+        }
+        // Otherwise print all results
         results.forEach((r, i) => {
           console.log(`${i + 1}. ${r.title}`);
           console.log(`   ${r.url}`);
