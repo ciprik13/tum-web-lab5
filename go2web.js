@@ -21,6 +21,7 @@ function rawRequest(host, port, path) {
       const request =
         `GET ${path} HTTP/1.1\r\n` +
         `Host: ${host}\r\n` +
+        `Accept: application/json, text/html\r\n` +
         `Connection: close\r\n` +
         `\r\n`;
       socket.write(request);
@@ -88,8 +89,24 @@ function fetchWithRedirects(url, maxRedirects = 5) {
       return fetchWithRedirects(nextUrl, maxRedirects - 1);
     }
 
-    return { statusLine, body };
+    return { statusLine, headers, body };
   });
+}
+
+/**
+ * Format response body based on Content-Type.
+ * If JSON -> pretty print, if HTML -> strip tags.
+ */
+function formatBody(body, headers) {
+  const contentType = (headers['content-type'] || '').toLowerCase();
+  if (contentType.includes('application/json')) {
+    try {
+      return JSON.stringify(JSON.parse(body), null, 2);
+    } catch {
+      return body; // not valid JSON, return as-is
+    }
+  }
+  return stripHtml(body);
 }
 
 // In-memory cache: url -> { statusLine, body }
@@ -187,7 +204,7 @@ Options:
     fetchCached(url)
       .then(({ statusLine, body }) => {
         console.log(statusLine);
-        console.log(stripHtml(body));
+        console.log(formatBody(body, headers));
       })
       .catch(err => { console.error(err.message); process.exit(1); });
     break;
@@ -212,7 +229,7 @@ Options:
           console.log(`Fetching result ${pickNum}: ${picked.url}\n`);
           return fetchCached(picked.url).then(({ statusLine, body }) => {
             console.log(statusLine);
-            console.log(stripHtml(body));
+            console.log(formatBody(body, headers));
           });
         }
         // Otherwise print all results
