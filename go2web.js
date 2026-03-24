@@ -92,6 +92,23 @@ function fetchWithRedirects(url, maxRedirects = 5) {
   });
 }
 
+// In-memory cache: url -> { statusLine, body }
+const cache = new Map();
+
+/**
+ * Fetch a URL using cache — returns cached result if available.
+ */
+function fetchCached(url) {
+  if (cache.has(url)) {
+    console.error(`[cache] HIT: ${url}`);
+    return Promise.resolve(cache.get(url));
+  }
+  return fetchWithRedirects(url).then(result => {
+    cache.set(url, result);
+    return result;
+  });
+}
+
 function searchYahoo(term) {
   const query = encodeURIComponent(term);
   const path = `/search?p=${query}`;
@@ -167,7 +184,7 @@ Options:
   case '-u': {
     const url = args[1];
     if (!url) { console.error('Usage: go2web -u <URL>'); process.exit(1); }
-    fetchWithRedirects(url)
+    fetchCached(url)
       .then(({ statusLine, body }) => {
         console.log(statusLine);
         console.log(stripHtml(body));
@@ -193,7 +210,7 @@ Options:
           }
           const picked = results[pickNum - 1];
           console.log(`Fetching result ${pickNum}: ${picked.url}\n`);
-          return fetchWithRedirects(picked.url).then(({ statusLine, body }) => {
+          return fetchCached(picked.url).then(({ statusLine, body }) => {
             console.log(statusLine);
             console.log(stripHtml(body));
           });
