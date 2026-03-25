@@ -4,10 +4,15 @@
 
 const net = require("net");
 const tls = require("tls");
+const fs = require("fs");
+const os = require("os");
+const path = require("path");
 const args = process.argv.slice(2);
 
 const USER_AGENT =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+const CACHE_DIR = path.join(os.homedir(), ".go2web");
+const CACHE_FILE = path.join(CACHE_DIR, "cache.json");
 
 function normalizeUrl(input) {
   const value = (input || "").trim();
@@ -175,13 +180,70 @@ function fetchWithRedirects(url, maxRedirects = 5) {
 // In-memory cache: url -> { statusLine, headers, body }
 const cache = new Map();
 
-function fetchCached(url) {
-  if (cache.has(url)) {
-    console.error(`[cache] HIT: ${url}`);
-    return Promise.resolve(cache.get(url));
+function ensureCacheDir() {
+  fs.mkdirSync(CACHE_DIR, { recursive: true });
+}
+
+function loadDiskCache() {
+  try {
+    if (!fs.existsSync(CACHE_FILE)) return {};
+    const raw = fs.readFileSync(CACHE_FILE, "utf8");
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return {};
+    return parsed;
+  } catch {
+    return {};
   }
-  return fetchWithRedirects(url).then((result) => {
-    cache.set(url, result);
+}
+
+function readFromDiskCache(url) {
+  const diskCache = loadDiskCache();
+  const entry = diskCache[url];
+  if (!entry) return null;
+  if (!entry.statusLine || !entry.headers || typeof entry.body !== "string") {
+    return null;
+  }
+  return {
+    statusLine: entry.statusLine,
+    headers: entry.headers,
+    body: entry.body,
+  };
+}
+
+function writeToDiskCache(url, result) {
+  try {
+    ensureCacheDir();
+    const diskCache = loadDiskCache();
+    diskCache[url] = {
+      statusLine: result.statusLine,
+      headers: result.headers,
+      body: result.body,
+      cachedAt: new Date().toISOString(),
+    };
+    fs.writeFileSync(CACHE_FILE, JSON.stringify(diskCache, null, 2), "utf8");
+  } catch {
+    // Ignore disk cache write failures and continue with in-memory cache only.
+  }
+}
+
+function fetchCached(url) {
+  const normalizedUrl = normalizeUrl(url);
+
+  if (cache.has(normalizedUrl)) {
+    console.error(`[cache] HIT (memory): ${normalizedUrl}`);
+    return Promise.resolve(cache.get(normalizedUrl));
+  }
+
+  const diskCached = readFromDiskCache(normalizedUrl);
+  if (diskCached) {
+    console.error(`[cache] HIT (disk): ${normalizedUrl}`);
+    cache.set(normalizedUrl, diskCached);
+    return Promise.resolve(diskCached);
+  }
+
+  return fetchWithRedirects(normalizedUrl).then((result) => {
+    cache.set(normalizedUrl, result);
+    writeToDiskCache(normalizedUrl, result);
     return result;
   });
 }
@@ -271,7 +333,7 @@ Usage:
   go2web -u <URL>                 Fetch a URL and print human-readable response
   go2web -s <search-term>         Search and print top 10 results
   go2web -s <search-term> <no>    Fetch the Nth search result
-  go2web --cache-demo <URL>       Fetch URL twice to demonstrate in-memory cache
+  go2web --cache-demo <URL>       Fetch URL twice to demonstrate memory + disk cache
 
 Options:
   -h   Show help
