@@ -15,7 +15,7 @@ go2web -h                        # show help
 go2web -u <URL>                  # fetch a URL and print human-readable response
 go2web -s <search-term>          # search and print top 10 results
 go2web -s <search-term> <no>     # fetch the Nth search result
-go2web --cache-demo <URL>        # demonstrate in-memory cache
+go2web --cache-demo <URL>        # demonstrate memory + disk cache
 ```
 
 ## Examples
@@ -39,8 +39,11 @@ go2web -s "HTTP over TCP sockets"
 # Open the 2nd search result directly
 go2web -s "HTTP over TCP sockets" 2
 
-# Demonstrate in-memory cache
+# Demonstrate memory + disk cache
 go2web --cache-demo https://catfact.ninja/fact
+
+# Clear disk cache
+rm -f ~/.go2web/cache.json
 ```
 
 ## Features
@@ -50,7 +53,7 @@ go2web --cache-demo https://catfact.ninja/fact
 | Raw TCP sockets     | HTTP via `net`, HTTPS via `tls`                                            |
 | HTML stripping      | Human-readable output, no tags                                             |
 | HTTP redirects      | Follows 3xx automatically (up to 5 hops)                                   |
-| In-memory cache     | Repeated requests served from cache                                        |
+| Memory + disk cache | Repeated requests served from memory or from ~/.go2web/cache.json          |
 | Content negotiation | `Accept: application/json, text/html` — JSON pretty-printed, HTML stripped |
 | Search              | Yahoo (primary) + DuckDuckGo (fallback)                                    |
 | Clickable results   | `-s <term> <N>` fetches the Nth result                                     |
@@ -58,6 +61,12 @@ go2web --cache-demo https://catfact.ninja/fact
 ## Requirements
 
 - Node.js (no npm install needed — zero dependencies)
+
+## Clear Cache
+
+```bash
+rm -f ~/.go2web/cache.json
+```
 
 ## Run without `node` prefix
 
