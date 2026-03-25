@@ -11,49 +11,49 @@ Built with Node.js (`net` and `tls` modules only).
 ## Usage
 
 ```bash
-node go2web.js -h                        # show help
-node go2web.js -u <URL>                  # fetch a URL and print human-readable response
-node go2web.js -s <search-term>          # search and print top 10 results
-node go2web.js -s <search-term> <no>     # fetch the Nth search result
-node go2web.js --cache-demo <URL>        # demonstrate in-memory cache
+go2web -h                        # show help
+go2web -u <URL>                  # fetch a URL and print human-readable response
+go2web -s <search-term>          # search and print top 10 results
+go2web -s <search-term> <no>     # fetch the Nth search result
+go2web --cache-demo <URL>        # demonstrate in-memory cache
 ```
 
 ## Examples
 
 ```bash
 # Fetch a real website
-node go2web.js -u https://www.w3schools.com/js/js_intro.asp
+go2web -u https://www.w3schools.com/js/js_intro.asp
 
 # Fetch a public JSON API — random cat fact
-node go2web.js -u https://catfact.ninja/fact
+go2web -u https://catfact.ninja/fact
 
 # Fetch a Chuck Norris joke
-node go2web.js -u https://api.chucknorris.io/jokes/random
+go2web -u https://api.chucknorris.io/jokes/random
 
 # Follow redirects automatically
-node go2web.js -u http://httpbin.org/redirect/3
+go2web -u http://httpbin.org/redirect/3
 
 # Search something relevant to the lab
-node go2web.js -s "HTTP over TCP sockets"
+go2web -s "HTTP over TCP sockets"
 
 # Open the 2nd search result directly
-node go2web.js -s "HTTP over TCP sockets" 2
+go2web -s "HTTP over TCP sockets" 2
 
 # Demonstrate in-memory cache
-node go2web.js --cache-demo https://catfact.ninja/fact
+go2web --cache-demo https://catfact.ninja/fact
 ```
 
 ## Features
 
-| Feature | Details |
-|---|---|
-| Raw TCP sockets | HTTP via `net`, HTTPS via `tls` |
-| HTML stripping | Human-readable output, no tags |
-| HTTP redirects | Follows 3xx automatically (up to 5 hops) |
-| In-memory cache | Repeated requests served from cache |
+| Feature             | Details                                                                    |
+| ------------------- | -------------------------------------------------------------------------- |
+| Raw TCP sockets     | HTTP via `net`, HTTPS via `tls`                                            |
+| HTML stripping      | Human-readable output, no tags                                             |
+| HTTP redirects      | Follows 3xx automatically (up to 5 hops)                                   |
+| In-memory cache     | Repeated requests served from cache                                        |
 | Content negotiation | `Accept: application/json, text/html` — JSON pretty-printed, HTML stripped |
-| Search | Yahoo (primary) + DuckDuckGo (fallback) |
-| Clickable results | `-s <term> <N>` fetches the Nth result |
+| Search              | Yahoo (primary) + DuckDuckGo (fallback)                                    |
+| Clickable results   | `-s <term> <N>` fetches the Nth result                                     |
 
 ## Requirements
 
