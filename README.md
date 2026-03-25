@@ -4,9 +4,25 @@ A CLI tool that makes raw HTTP/HTTPS requests over TCP sockets — no HTTP libra
 
 Built with Node.js (`net` and `tls` modules only).
 
-<!-- ## Demo
+## Demo
 
-![go2web demo](demo.gif) -->
+### Help (`-h`)
+
+![Help demo](GIF/h.gif)
+
+### Fetch URL (`-u`)
+
+![Fetch URL demo 1](GIF/u.gif)
+![Fetch URL demo 2](GIF/u_2.gif)
+
+### Search (`-s`)
+
+![Search demo 1](GIF/s.gif)
+![Search demo 2](GIF/s_2.gif)
+
+### Cache demo (`--cache-demo`)
+
+![Cache demo](GIF/cache.gif)
 
 ## Usage
 
